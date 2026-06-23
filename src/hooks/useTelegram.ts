@@ -66,20 +66,31 @@ export function useTelegram() {
   const [isTelegram, setIsTelegram] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Check if window.Telegram.WebApp exists (standard script tag loading or SDK injection)
+    if (typeof window === 'undefined') return;
+
+    let attempts = 0;
+    const maxAttempts = 20; // 1 second total
+
+    const checkTg = () => {
       const tg = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } })?.Telegram?.WebApp;
       if (tg) {
-        Promise.resolve().then(() => {
-          setWebApp(tg);
-          setIsTelegram(true);
-        });
+        setWebApp(tg);
+        setIsTelegram(true);
         tg.ready();
         tg.expand();
-      } else {
-        // Fallback mockup for local desktop development
-        console.warn('Telegram WebApp SDK is not found. Running in Guest/Development Mode.');
-        Promise.resolve().then(() => {
+        return true;
+      }
+      return false;
+    };
+
+    if (checkTg()) return;
+
+    const interval = setInterval(() => {
+      attempts++;
+      if (checkTg() || attempts >= maxAttempts) {
+        clearInterval(interval);
+        if (attempts >= maxAttempts && !(window as unknown as { Telegram?: { WebApp?: TelegramWebApp } })?.Telegram?.WebApp) {
+          console.warn('Telegram WebApp SDK is not found. Running in Guest/Development Mode.');
           setWebApp({
             initData: 'auth_date=1620000000&query_id=AAH...&user=%7B%22id%22%3A123456%2C%22first_name%22%3A%22Mehmon%22%2C%22username%22%3A%22guest_user%22%7D&hash=dummydummy',
             initDataUnsafe: {
@@ -133,9 +144,11 @@ export function useTelegram() {
             },
           });
           setIsTelegram(false);
-        });
+        }
       }
-    }
+    }, 50);
+
+    return () => clearInterval(interval);
   }, []);
 
   return {

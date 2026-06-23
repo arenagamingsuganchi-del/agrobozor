@@ -7,7 +7,7 @@ import { useStore } from '@/store';
 import { supabase } from '@/lib/supabase/client';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const { user: tgUser, webApp } = useTelegram();
+  const { user: tgUser, webApp, isTelegram } = useTelegram();
   const { setAuth, setLoading, user: storeUser, syncCart, loadCart } = useStore();
 
   useEffect(() => {
@@ -41,19 +41,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
           if (createError) {
             console.error('Failed to create user in database:', createError);
+            setLoading(false);
           } else if (newUser) {
             setAuth(newUser, 'local-session-token');
-            // Sync guest cart into DB cart on sign up
-            await syncCart(newUser.id);
+            setLoading(false); // Unlock UI immediately
+            syncCart(newUser.id).catch(console.error); // Sync cart in background
           }
         } else if (dbUser) {
           setAuth(dbUser, 'local-session-token');
-          // Sync guest cart into DB cart on login
-          await syncCart(dbUser.id);
+          setLoading(false); // Unlock UI immediately
+          syncCart(dbUser.id).catch(console.error); // Sync cart in background
         }
       } catch (err) {
         console.error('Authentication error:', err);
-      } finally {
         setLoading(false);
       }
     }
@@ -62,6 +62,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
       handleTelegramLogin();
     }
   }, [webApp, tgUser, storeUser, setAuth, setLoading, syncCart]);
+
+  // If not in Telegram, stop the loading state immediately so page renders
+  useEffect(() => {
+    if (webApp && !isTelegram) {
+      setLoading(false);
+    }
+  }, [webApp, isTelegram, setLoading]);
 
   // Load guest cart items from localStorage on initial load if guest
   useEffect(() => {
@@ -79,14 +86,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [storeUser]);
 
-  return (
-    <>
-      {/* Inject Telegram WebApp Script to ensure window.Telegram is populated */}
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

@@ -32,9 +32,8 @@ export function BottomNav() {
 
         if (partError || !participants) return;
 
-        let totalUnread = 0;
-
-        for (const p of participants) {
+        // Run counts in parallel using Promise.all to avoid N+1 database bottlenecks
+        const countPromises = participants.map(async (p) => {
           const { count, error: countError } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
@@ -42,11 +41,11 @@ export function BottomNav() {
             .eq('is_deleted', false)
             .gt('created_at', p.last_read_at)
             .neq('sender_id', currentUserId);
+          return countError ? 0 : (count || 0);
+        });
 
-          if (!countError && count) {
-            totalUnread += count;
-          }
-        }
+        const counts = await Promise.all(countPromises);
+        const totalUnread = counts.reduce((acc, c) => acc + c, 0);
 
         setUnreadCount(totalUnread);
       } catch (err) {

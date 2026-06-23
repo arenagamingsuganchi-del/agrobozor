@@ -24,7 +24,7 @@ export interface AuthSlice {
 export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   accessToken: null,
   setAuth: (user, token) => set({ user, accessToken: token, isAuthenticated: true, isLoading: false }),
   setLoading: (loading) => set({ isLoading: loading }),

@@ -16,8 +16,10 @@ export interface AuthSlice {
   isAuthenticated: boolean;
   isLoading: boolean;
   accessToken: string | null;
+  error: string | null;
   setAuth: (user: UserProfile, token: string) => void;
   setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
   logout: () => void;
 }
 
@@ -26,7 +28,9 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
   isAuthenticated: false,
   isLoading: true,
   accessToken: null,
-  setAuth: (user, token) => set({ user, accessToken: token, isAuthenticated: true, isLoading: false }),
+  error: null,
+  setAuth: (user, token) => set({ user, accessToken: token, isAuthenticated: true, isLoading: false, error: null }),
   setLoading: (loading) => set({ isLoading: loading }),
-  logout: () => set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false }),
+  setError: (error) => set({ error }),
+  logout: () => set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, error: null }),
 });

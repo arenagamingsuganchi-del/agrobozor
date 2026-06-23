@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const { user: tgUser, webApp, isTelegram } = useTelegram();
-  const { setAuth, setLoading, user: storeUser, syncCart, loadCart } = useStore();
+  const { setAuth, setLoading, user: storeUser, syncCart, loadCart, setError } = useStore();
 
   console.log("DEBUG [providers] Render state:", {
     hasTgUser: !!tgUser,
@@ -28,6 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
       console.log("DEBUG [providers] handleTelegramLogin triggered for telegram_id:", tgUser.id);
       setLoading(true);
+      setError(null);
       
       try {
         console.log("DEBUG [providers] Env check:", {
@@ -69,6 +70,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
             if (createError) {
               console.error('DEBUG [providers] Failed to create user in database:', createError);
+              setError(`DB Create Error: ${createError.message} (code: ${createError.code || 'unknown'})`);
               setLoading(false);
             } else if (newUser) {
               console.log("DEBUG [providers] Step 3.2: Calling setAuth & background syncCart...");
@@ -76,10 +78,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
               setLoading(false);
               syncCart(newUser.id).catch((e) => console.error("DEBUG [providers] syncCart error:", e));
             } else {
+              setError("No user data returned after creation");
               setLoading(false);
             }
           } else {
             console.error('DEBUG [providers] Database error fetching user:', error.message);
+            setError(`DB Fetch Error: ${error.message} (code: ${error.code || 'unknown'})`);
             setLoading(false);
           }
         } else if (dbUser) {
@@ -89,10 +93,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
           syncCart(dbUser.id).catch((e) => console.error("DEBUG [providers] syncCart error:", e));
         } else {
           console.log("DEBUG [providers] Step 4.F: No data and no error returned. Unlocking loading.");
+          setError("No user data and no database error returned");
           setLoading(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('DEBUG [providers] Authentication catch block error:', err);
+        setError(`Unexpected Catch Error: ${err?.message || err}`);
         setLoading(false);
       }
     }

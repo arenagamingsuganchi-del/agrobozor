@@ -5,7 +5,7 @@ import { useStore } from '@/store';
 import { BottomNav } from '@/components/shared/bottom-nav';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useStore();
+  const { isAuthenticated, isLoading, error: authError } = useStore();
 
   if (isLoading) {
     return (
@@ -26,6 +26,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="text-xs text-slate-400 leading-relaxed">
             Ushbu sahifadan foydalanish uchun Telegram Mini App orqali tizimga kirishingiz lozim. Iltimos, Telegram ilovasi orqali kiring.
           </p>
+          {authError && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-left">
+              <span className="text-[10px] font-semibold text-red-400 block mb-1">Xatolik tafsiloti:</span>
+              <code className="text-[9px] text-red-300 font-mono break-all leading-normal block">{authError}</code>
+            </div>
+          )}
         </div>
         <BottomNav />
       </div>

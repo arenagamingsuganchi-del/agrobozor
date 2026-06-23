@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Script from 'next/script';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useStore } from '@/store';
 import { supabase } from '@/lib/supabase/client';

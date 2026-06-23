@@ -102,17 +102,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [webApp, tgUser, storeUser, setAuth, setLoading, syncCart]);
 
-  // If not in Telegram, stop the loading state immediately so page renders
+  // If not in Telegram or Telegram user info is unavailable, stop the loading state
   useEffect(() => {
-    console.log("DEBUG [providers] Non-Telegram layout check:", {
+    console.log("DEBUG [providers] Layout verification check:", {
       hasWebApp: !!webApp,
-      isTelegram
+      isTelegram,
+      hasTgUser: !!tgUser
     });
-    if (webApp && !isTelegram) {
-      console.log("DEBUG [providers] Outside Telegram, calling setLoading(false) immediately.");
-      setLoading(false);
+    if (webApp) {
+      if (!isTelegram) {
+        console.log("DEBUG [providers] Outside Telegram, calling setLoading(false) immediately.");
+        setLoading(false);
+      } else if (!tgUser) {
+        console.log("DEBUG [providers] Inside Telegram but user data is missing, calling setLoading(false) to show fallback screen.");
+        setLoading(false);
+      }
     }
-  }, [webApp, isTelegram, setLoading]);
+  }, [webApp, isTelegram, tgUser, setLoading]);
 
   // Load guest cart items from localStorage on initial load if guest
   useEffect(() => {

@@ -24,32 +24,41 @@ export function Providers({ children }: { children: React.ReactNode }) {
           .eq('telegram_id', tgUser.id)
           .single();
 
-        if (error && error.code === 'PGRST116') {
-          // User not found in DB, create new user (Buyer by default)
-          const { data: newUser, error: createError } = await supabase
-            .from('users')
-            .insert({
-              telegram_id: tgUser.id,
-              username: tgUser.username || null,
-              first_name: tgUser.first_name,
-              phone: 'not-verified',
-              role: 'buyer',
-            })
-            .select('*')
-            .single();
+        if (error) {
+          if (error.code === 'PGRST116') {
+            // User not found in DB, create new user (Buyer by default)
+            const { data: newUser, error: createError } = await supabase
+              .from('users')
+              .insert({
+                telegram_id: tgUser.id,
+                username: tgUser.username || null,
+                first_name: tgUser.first_name,
+                phone: 'not-verified',
+                role: 'buyer',
+              })
+              .select('*')
+              .single();
 
-          if (createError) {
-            console.error('Failed to create user in database:', createError);
-            setLoading(false);
-          } else if (newUser) {
-            setAuth(newUser, 'local-session-token');
-            setLoading(false); // Unlock UI immediately
-            syncCart(newUser.id).catch(console.error); // Sync cart in background
+            if (createError) {
+              console.error('Failed to create user in database:', createError);
+              setLoading(false);
+            } else if (newUser) {
+              setAuth(newUser, 'local-session-token');
+              setLoading(false); // Unlock UI immediately
+              syncCart(newUser.id).catch(console.error); // Sync cart in background
+            } else {
+              setLoading(false);
+            }
+          } else {
+            console.error('Database error fetching user:', error.message);
+            setLoading(false); // Unlock UI on database/connection errors
           }
         } else if (dbUser) {
           setAuth(dbUser, 'local-session-token');
           setLoading(false); // Unlock UI immediately
           syncCart(dbUser.id).catch(console.error); // Sync cart in background
+        } else {
+          setLoading(false);
         }
       } catch (err) {
         console.error('Authentication error:', err);

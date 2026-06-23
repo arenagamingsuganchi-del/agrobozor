@@ -66,7 +66,10 @@ export function useTelegram() {
   const [isTelegram, setIsTelegram] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      console.log("DEBUG [useTelegram] Window is undefined (SSR)");
+      return;
+    }
 
     let attempts = 0;
     const maxAttempts = 20; // 1 second total
@@ -74,6 +77,10 @@ export function useTelegram() {
     const checkTg = () => {
       const tg = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } })?.Telegram?.WebApp;
       if (tg) {
+        console.log("DEBUG [useTelegram] SDK Found: window.Telegram.WebApp exists!", {
+          initData: tg.initData ? tg.initData.substring(0, 30) + '...' : 'empty',
+          user: tg.initDataUnsafe?.user
+        });
         setWebApp(tg);
         setIsTelegram(true);
         tg.ready();
@@ -83,15 +90,18 @@ export function useTelegram() {
       return false;
     };
 
+    console.log("DEBUG [useTelegram] useEffect mounted, starting initial checkTg");
     if (checkTg()) return;
 
+    console.log("DEBUG [useTelegram] SDK not found initially, starting polling check Tg...");
     const interval = setInterval(() => {
       attempts++;
+      console.log(`DEBUG [useTelegram] Polling check attempt ${attempts}/20`);
       if (checkTg() || attempts >= maxAttempts) {
         clearInterval(interval);
         if (attempts >= maxAttempts && !(window as unknown as { Telegram?: { WebApp?: TelegramWebApp } })?.Telegram?.WebApp) {
-          console.warn('Telegram WebApp SDK is not found. Running in Guest/Development Mode.');
-          setWebApp({
+          console.warn('DEBUG [useTelegram] SDK NOT found after 1s. Initializing mockup environment.');
+          const mockWebApp = {
             initData: 'auth_date=1620000000&query_id=AAH...&user=%7B%22id%22%3A123456%2C%22first_name%22%3A%22Mehmon%22%2C%22username%22%3A%22guest_user%22%7D&hash=dummydummy',
             initDataUnsafe: {
               query_id: 'AAH...',
@@ -103,7 +113,7 @@ export function useTelegram() {
               auth_date: 1620000000,
               hash: 'dummydummy',
             },
-            colorScheme: 'light',
+            colorScheme: 'light' as const,
             themeParams: {},
             isExpanded: true,
             viewportHeight: 600,
@@ -142,14 +152,24 @@ export function useTelegram() {
               notificationOccurred: () => {},
               selectionChanged: () => {},
             },
-          });
+          };
+          setWebApp(mockWebApp);
           setIsTelegram(false);
         }
       }
     }, 50);
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log("DEBUG [useTelegram] Cleaning up polling interval");
+      clearInterval(interval);
+    };
   }, []);
+
+  console.log("DEBUG [useTelegram] Hook return state:", {
+    hasWebApp: !!webApp,
+    isTelegram,
+    user: webApp?.initDataUnsafe?.user
+  });
 
   return {
     webApp,

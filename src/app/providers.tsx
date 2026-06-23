@@ -96,9 +96,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           setError("No user data and no database error returned");
           setLoading(false);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('DEBUG [providers] Authentication catch block error:', err);
-        setError(`Unexpected Catch Error: ${err?.message || err}`);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        setError(`Unexpected Catch Error: ${errMsg}`);
         setLoading(false);
       }
     }
@@ -106,7 +107,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (webApp && tgUser && !storeUser) {
       handleTelegramLogin();
     }
-  }, [webApp, tgUser, storeUser, setAuth, setLoading, syncCart]);
+  }, [webApp, tgUser, storeUser, setAuth, setLoading, syncCart, setError]);
 
   // If not in Telegram or Telegram user info is unavailable, stop the loading state
   useEffect(() => {
